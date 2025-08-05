@@ -11,17 +11,18 @@ const genAI = API_KEY ? new GoogleGenerativeAI(API_KEY) : null;
 export class GeminiService {
   private model = genAI?.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
-  async translateToPython(indicCode: string): Promise<{ pythonCode: string; error?: string }> {
+  async translateAndExecute(indicCode: string): Promise<{ output: string; error?: string; pythonCode?: string }> {
     if (!this.model) {
       return {
-        pythonCode: '',
-        error: 'Gemini API key not configured. Please add VITE_GEMINI_API_KEY to your environment variables.'
+        output: '',
+        error: 'Gemini API key not configured. Please add VITE_GEMINI_API_KEY to your environment variables.',
+        pythonCode: ''
       };
     }
 
     try {
       const prompt = `
-You are a code translator that converts Indic-style pseudo-code (written in English script with Hindi/Sanskrit words) into valid Python code.
+You are a code translator and executor that converts natural language code (written in English script with Hindi/Sanskrit words) into Python code and executes it.
 
 Translation Rules:
 - "chhapo" or "छापो" → print()
@@ -38,21 +39,55 @@ Translation Rules:
 - "phir" or "फिर" → then/else
 - "aur" or "और" → and
 - "ya" or "या" → or
+- "ke liye" or "के लिए" → for loop
+- "range" or "रेंज" → range()
+- "list" or "सूची" → list
+- "dictionary" or "शब्दकोश" → dict
+- "function" or "फंक्शन" → def
+- "return" or "वापस" → return
+- "try" or "कोशिश" → try
+- "except" or "अपवाद" → except
+- "finally" or "अंततः" → finally
+- "import" or "आयात" → import
+- "class" or "कक्षा" → class
+- "self" or "स्वयं" → self
 
-Convert this IndicLang code to Python. Only return valid Python code, no explanations:
+Instructions:
+1. First, translate the natural language code to valid Python code
+2. Then execute the Python code and capture the output
+3. Return the result in this exact format:
+   PYTHON_CODE: [the translated Python code]
+   OUTPUT: [the execution output]
+   ERROR: [any error message, or "None" if no error]
+
+Convert and execute this natural language code:
 
 ${indicCode}
 `;
 
       const result = await this.model.generateContent(prompt);
       const response = await result.response;
-      const pythonCode = response.text().trim();
+      const fullResponse = response.text().trim();
 
-      return { pythonCode };
+      // Parse the response to extract Python code, output, and error
+      const pythonCodeMatch = fullResponse.match(/PYTHON_CODE:\s*([\s\S]*?)(?=OUTPUT:|ERROR:|$)/);
+      const outputMatch = fullResponse.match(/OUTPUT:\s*([\s\S]*?)(?=ERROR:|$)/);
+      const errorMatch = fullResponse.match(/ERROR:\s*([\s\S]*?)$/);
+
+      const pythonCode = pythonCodeMatch ? pythonCodeMatch[1].trim() : '';
+      const output = outputMatch ? outputMatch[1].trim() : '';
+      const error = errorMatch ? errorMatch[1].trim() : '';
+
+      return {
+        output: error === 'None' ? output : '',
+        error: error === 'None' ? undefined : error,
+        pythonCode: pythonCode
+      };
     } catch (error) {
       return {
-        pythonCode: '',
-        error: `Translation error: ${error instanceof Error ? error.message : 'Unknown error'}`
+        output: '',
+        error: error instanceof Error ? error.message : 'Unknown error',
+        pythonCode: ''
       };
     }
   }
@@ -64,7 +99,7 @@ ${indicCode}
 
     try {
       const prompt = `
-You are a helpful assistant for the IndicLang programming language. IndicLang uses Hindi/Sanskrit words written in English script to write code.
+You are a helpful assistant for the Natural Language to Python programming system. This system allows you to write code using natural language with Hindi/Sanskrit words written in English script, which gets translated to Python and executed.
 
 Here are the main keywords and their meanings:
 - "chhapo" (छापो) - print/display output
@@ -81,10 +116,28 @@ Here are the main keywords and their meanings:
 - "phir" (फिर) - then/else
 - "aur" (और) - and
 - "ya" (या) - or
+- "ke liye" (के लिए) - for loop
+- "range" (रेंज) - range function
+- "list" (सूची) - list data structure
+- "dictionary" (शब्दकोश) - dictionary data structure
+- "function" (फंक्शन) - function definition
+- "return" (वापस) - return statement
+- "try" (कोशिश) - try block
+- "except" (अपवाद) - except block
+- "import" (आयात) - import statement
+- "class" (कक्षा) - class definition
+
+The system supports full Python syntax including:
+- All control structures (if/elif/else, for, while)
+- Functions and classes
+- Lists, dictionaries, and other data structures
+- List comprehensions and lambda functions
+- Exception handling
+- All Python standard library features
 
 User question: ${userMessage}
 
-Provide a helpful response about IndicLang programming. Include examples when relevant. Keep responses concise and practical.
+Provide a helpful response about natural language programming. Include examples when relevant. Keep responses concise and practical.
 `;
 
       const result = await this.model.generateContent(prompt);

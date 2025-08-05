@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Play, Code, Sparkles, Brain, Zap } from 'lucide-react';
 import { GeminiService } from './services/geminiService';
-import { PythonInterpreter } from './services/pythonInterpreter';
 import { ChatBot } from './components/ChatBot';
 import { CompilerResult } from './types';
 
@@ -13,32 +12,20 @@ function App() {
   const [showPythonCode, setShowPythonCode] = useState(false);
 
   const geminiService = new GeminiService();
-  const pythonInterpreter = new PythonInterpreter();
 
   const executeCode = async () => {
     setIsRunning(true);
     try {
-      // Step 1: Use Gemini AI to translate IndicLang to Python
-      const translation = await geminiService.translateToPython(code);
-      
-      if (translation.error) {
-        setResult({ 
-          output: '', 
-          error: translation.error,
-          pythonCode: ''
-        });
-        return;
-      }
-
-      // Step 2: Execute the Python code using our interpreter
-      const execution = pythonInterpreter.execute(translation.pythonCode);
+      // Use Gemini AI to translate and execute the code
+      const result = await geminiService.translateAndExecute(code);
       
       setResult({
-        output: execution.output,
-        error: execution.error,
-        pythonCode: translation.pythonCode
+        output: result.output,
+        error: result.error,
+        pythonCode: result.pythonCode
       });
     } catch (error) {
+      console.error('Execution error:', error);
       setResult({ 
         output: '', 
         error: error instanceof Error ? error.message : 'Execution error',
@@ -55,19 +42,29 @@ function App() {
       description: "Swap two variables using 'adala badli'"
     },
     {
+      title: "For Loop",
+      code: "ke liye i range(5):\n    chhapo i",
+      description: "Use 'ke liye' for for loops"
+    },
+    {
+      title: "List Operations",
+      code: "numbers = [1, 2, 3, 4, 5]\nke liye num numbers:\n    chhapo num",
+      description: "Work with lists and iterate"
+    },
+    {
+      title: "Function Definition",
+      code: "function add_numbers(a, b):\n    return a + b\n\nresult = add_numbers(5, 3)\nchhapo result",
+      description: "Define and use functions"
+    },
+    {
       title: "Conditional Logic",
       code: "x = 12\nyadi x > 10:\n    chhapo 'bada hai'\nphir:\n    chhapo 'chota hai'",
       description: "Use 'yadi' for if conditions"
     },
     {
-      title: "Loop Counter",
+      title: "While Loop",
       code: "ganana = 0\njab tak ganana < 3:\n    chhapo ganana\n    ganana = ganana + 1",
       description: "Create loops with 'jab tak'"
-    },
-    {
-      title: "Sanskrit Style",
-      code: "संख्या = 7\nयदि संख्या > 5:\n    छापो 'बड़ी संख्या'\nअन्यथा:\n    छापो 'छोटी संख्या'",
-      description: "Use Devanagari script directly"
     }
   ];
 
@@ -85,7 +82,7 @@ function App() {
                 <h1 className="text-3xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
                   Sanskrit Compiler
                 </h1>
-                <p className="text-gray-600 mt-1">Sanskrit-Hindi-English Code Interpreter</p>
+                <p className="text-gray-600 mt-1">Write code in Hindi/Sanskrit :)</p>
               </div>
             </div>
           </div>
@@ -100,9 +97,9 @@ function App() {
               <div className="bg-gradient-to-r from-orange-500 to-red-600 px-6 py-4">
                 <h2 className="text-white font-semibold flex items-center gap-2">
                   <Sparkles className="w-5 h-5" />
-                  IndicLang Code Editor
+                  Natural Language Code Editor
                 </h2>
-                <p className="text-orange-100 text-sm mt-1">Write in Hindi, Sanskrit, or English script</p>
+                <p className="text-orange-100 text-sm mt-1">Write Python code using natural language with Hindi/Sanskrit keywords</p>
               </div>
               
               <div className="p-6">
@@ -110,7 +107,7 @@ function App() {
                   value={code}
                   onChange={(e) => setCode(e.target.value)}
                   className="w-full h-80 font-mono text-sm bg-gray-50 border border-gray-200 rounded-lg p-4 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 resize-none"
-                  placeholder="Enter your IndicLang code here... (e.g., chhapo 'Hello World')"
+                  placeholder="Enter your natural language code here... (e.g., chhapo 'Hello World')"
                 />
                 
                 <div className="flex gap-3 mt-4">
@@ -136,6 +133,8 @@ function App() {
                       {showPythonCode ? 'Hide' : ''} 
                     </button>
                   )}
+                  
+
                 </div>
               </div>
             </div>
