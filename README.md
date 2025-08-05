@@ -1,6 +1,6 @@
-# Natural Language Python Compiler
+# Sanskrit Compiler
 
-A web-based Python compiler that lets you write Python code using natural language with Hindi/Sanskrit keywords. The system uses Gemini AI to translate your natural language code to Python and execute it.
+A web-based compiler that lets you writes code using natural language with Hindi/Sanskrit keywords. The system uses Gemini AI to translate your natural language code to Python and execute it.
 
 ## Features
 
